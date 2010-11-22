@@ -10,6 +10,8 @@
 # See included test for example usage:
 ##
 
+require File.dirname(__FILE__) + '/lru_hash'
+
 class Sublist #:nodoc:
   PWC = '*'.freeze
   FWC = '>'.freeze
@@ -56,7 +58,6 @@ class Sublist #:nodoc:
     end
     node.leaf_nodes.push(subscriber)
     @count += 1
-    clear_cache # Clear the cache
   end
 
   # Remove a given subscriber from the sublist for the given subject.
@@ -75,18 +76,18 @@ class Sublist #:nodoc:
     end
     # This could be expensize if a large number of subscribers exist.
     node.leaf_nodes.delete(subscriber) if (node && node.leaf_nodes) 
-    clear_cache # Clear the cache
   end
   
   # Match a subject to all subscribers, return the array of matches.
   def match(subject)
-    return @cache[subject] if (@cache && @cache[subject])    
+    if (@cache && (node = @cache[subject]))
+      return node
+    end   
     tokens = subject.split('.')
     @results.clear
     matchAll(@root, tokens)
     # FIXME: This is too low tech, will revisit when needed.
     if @cache
-      clear_cache if @cache.size > CACHE_SIZE
       @cache[subject] = Array.new(@results).freeze # Avoid tampering of copy
     end
     @results
